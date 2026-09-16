@@ -1,2 +1,4 @@
-print("heel")
-print("makam")
+import tkinter
+
+win = Tk()
+print(win)
