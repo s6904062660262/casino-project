@@ -1,113 +1,110 @@
-import tkinter as tk
-from tkinter import messagebox
+from tkinter import *
 import random
 
-# ชื่อไฟล์สำหรับบันทึกข้อมูล
-SAVE_FILE = "casino_save.txt"
+file_path = "data.csv"
 
-# ---------------- ฟังก์ชันอ่าน/บันทึกไฟล์ (ไม่ใช้ os) ----------------
-def load_balance():
-    """ โหลดเงินจากไฟล์ หากไม่มีไฟล์ให้เริ่มที่ 1000 """
+# Functions
+def loadBalance():
     try:
-        with open(SAVE_FILE, "r", encoding="utf-8") as f:
-            return int(f.read().strip())
-    except FileNotFoundError:
-        return 1000
+        with open(file_path, "r", encoding="utf-8") as f:
+            return int(f.read())
     except:
         return 1000
 
-def save_balance():
-    """ บันทึกเงินลงไฟล์ """
-    with open(SAVE_FILE, "w", encoding="utf-8") as f:
+def saveBalance():
+    with open(file_path, "w", encoding="utf-8") as f:
         f.write(str(balance))
 
-def on_closing():
-    """ เซฟข้อมูลอัตโนมัติเมื่อกดปิดหน้าต่างโปรแกรม (ปุ่ม X) """
-    save_balance()
-    root.destroy()
+def onClosing():
+    saveBalance()
+    window.destroy()
 
-# ---------------- เริ่มต้นค่าเงิน ----------------
-balance = load_balance()
+balance = loadBalance()
 
-# ---------------- ฟังก์ชันหมุนสล็อต ----------------
-def play_slot():
+def spinSlot():
     global balance
     
-    # 1. ตรวจสอบเงินเดิมพัน
     try:
-        bet = int(bet_entry.get())
+        bet = int(betEntry.get())
     except ValueError:
-        messagebox.showerror("Error", "Please enter a valid number")
+        resultLabel.config(text="Invalid bet! Bet must be integer.")
         return
 
-    if bet <= 0 or bet > balance:
-        messagebox.showwarning("Warning", "Invalid bet amount")
+    if bet <= 0:
+        resultLabel.config(text="Bet must greater than 0!")
+        return
+    
+    if balance <= 0:
+        resultLabel.config(text="You ran out of money! Ask mom for it.")
         return
 
-    # 2. สุ่มผลลัพธ์ Emoji
+    if bet > balance:
+        resultLabel.config(text="Can not bet more than Balance!")
+        return
+
     values = ('🍉', '🍇', '🍈')
     n1 = random.choice(values)
     n2 = random.choice(values)
     n3 = random.choice(values)
 
-    slot_label.config(text=f"[ {n1} ]  [ {n2} ]  [ {n3} ]")
+    slotLabel.config(text=f"[ {n1} ]  [ {n2} ]  [ {n3} ]")
 
-    # 3. คิดเงินตามตัวคูณ
-    mutipplier = {
+    mutiplier = {
         '🍉': 4,
         '🍇': 8,
         '🍈': 2
     }
     
     if n1 == n2 == n3:
-        win = bet * mutipplier[n1]
+        win = bet * mutiplier[n1]
         balance += win
-        result_label.config(text=f"WIN! +{win}")
+        resultLabel.config(text=f"WIN! +{win}")
     else:
         balance -= bet
-        result_label.config(text=f"LOSE! -{bet}")
+        resultLabel.config(text=f"LOSE! -{bet}")
 
-    # 4. อัปเดตเงินบนหน้าจอ + บันทึกข้อมูล
-    balance_label.config(text=f"Balance: {balance}")
-    save_balance()
+    balanceLabel.config(text=f"Balance: {balance}")
+    saveBalance()
 
-    # ตรวจสอบเงินหมด
-    if balance <= 0:
-        messagebox.showerror("Game Over", "You ran out of money!")
-        balance = 1000  # รีเซ็ตเงินกลับเป็น 1000 ถ้าแพ้จนหมด
-        save_balance()
-        root.destroy()
+def askMom():
+    global balance
+    if balance > 0:
+        resultLabel.config(text="0 money required.")
+        return
+    balance = 1000
+    balanceLabel.config(text=f"Balance: {balance}")
+    resultLabel.config(text="Your mom gave you +1000")
+    saveBalance()
 
-# ---------------- สร้างหน้าต่าง GUI (Grid Only) ----------------
-root = tk.Tk()
-root.title("Casino Game")
-root.geometry("400x380") # ปรับขยายขนาดหน้าต่างรองรับข้อความใหญ่
+#GUI
+window = Tk()
+window.title("Casino Game")
+window.geometry("400x370")
+window.columnconfigure((0, 1), weight=1)
+window.rowconfigure(5, weight=1)
 
-# กำหนดขนาดคอลัมน์ให้ขยายกลางหน้าจอ
-root.columnconfigure(0, weight=1)
-root.columnconfigure(1, weight=1)
+window.protocol("WM_DELETE_WINDOW", onClosing)
 
-# ดักจับ event เมื่อผู้ใช้กดปิดหน้าต่าง (ปุ่ม X)
-root.protocol("WM_DELETE_WINDOW", on_closing)
+balanceLabel = Label(window, text=f"Balance: {balance}", font=("Arial", 18, "bold"))
+balanceLabel.grid(row=0, column=0, columnspan=2, pady=15)
 
-# จัดวาง Widget ด้วย grid() พร้อมปรับขนาดตัวอักษร (font)
-balance_label = tk.Label(root, text=f"Balance: {balance}", font=("Arial", 18, "bold"))
-balance_label.grid(row=0, column=0, columnspan=2, pady=15)
+betLabel = Label(window, text="Bet Amount:", font=("Arial", 14))
+betLabel.grid(row=1, column=0, padx=5, pady=5, sticky="e")
 
-bet_title_label = tk.Label(root, text="Bet Amount:", font=("Arial", 14))
-bet_title_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+betEntry = Entry(window, justify="center", width=8, font=("Arial", 14))
+betEntry.insert(0, "50")
+betEntry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
-bet_entry = tk.Entry(root, justify="center", width=8, font=("Arial", 14))
-bet_entry.insert(0, "50")
-bet_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+slotLabel = Label(window, text="[ ? ]  [ ? ]  [ ? ]", font=("Arial", 26, "bold"))
+slotLabel.grid(row=2, column=0, columnspan=2, pady=20)
 
-slot_label = tk.Label(root, text="[ ? ]  [ ? ]  [ ? ]", font=("Arial", 26, "bold"))
-slot_label.grid(row=2, column=0, columnspan=2, pady=20)
+spinButton = Button(window, text="SPIN", command=spinSlot, width=12, font=("Arial", 14, "bold"))
+spinButton.grid(row=3, column=0, columnspan=2, pady=10)
 
-play_button = tk.Button(root, text="SPIN", command=play_slot, width=12, font=("Arial", 14, "bold"))
-play_button.grid(row=3, column=0, columnspan=2, pady=10)
+resultLabel = Label(window, text="...", font=("Arial", 14))
+resultLabel.grid(row=4, column=0, columnspan=2, pady=15)
 
-result_label = tk.Label(root, text="Good Luck!", font=("Arial", 14))
-result_label.grid(row=4, column=0, columnspan=2, pady=15)
+askMomButton = Button(window, text="Ask mom +1000", command=askMom)
+askMomButton.grid(row=5, column=0, padx=15, pady=15, sticky="sw")
 
-root.mainloop()
+window.mainloop()
